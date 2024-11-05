@@ -6,22 +6,22 @@ import json
 app = Flask(__name__)
 CORS(app)
 
-# Állapotok a legördülő menü számára a ServiceNow állapotkódok alapján
-STATUS_OPTIONS = [
-    {"label": "Nyitott", "value": "1"},
-    {"label": "Függőben", "value": "2"},
-    {"label": "Függőben Másoknál", "value": "3"},
-    {"label": "Megoldva", "value": "6"},
-    {"label": "Bezárva", "value": "7"},
-    {"label": "Törölve", "value": "8"}
-]
+# Állapotok a ServiceNow állapotkódok alapján
+STATUS_OPTIONS = {
+    "Nyitott": "1",
+    "Függőben": "2",
+    "Függőben Másoknál": "3",
+    "Megoldva": "6",
+    "Bezárva": "7",
+    "Törölve": "8"
+}
 
 # Fordított szótár az állapot nevekhez
-STATUS_LABELS = {option["value"]: option["label"] for option in STATUS_OPTIONS}
+STATUS_LABELS = {value: key for key, value in STATUS_OPTIONS.items()}
 
 
-@app.route('/get_incidents_with_status_options', methods=['POST'])
-def get_incidents_with_status_options():
+@app.route('/get_incidents', methods=['POST'])
+def get_incidents():
     request_data = request.json
     felhasználónév = request_data.get('felhasználónév')
     jelszó = request_data.get('jelszó')
@@ -66,19 +66,14 @@ def get_incidents_with_status_options():
                     {
                         "number": inc["number"],
                         "short_description": inc["short_description"],
-                        "status": STATUS_LABELS.get(inc["state"], inc["state"])
+                        "status": STATUS_LABELS.get(inc["state"], inc["state"]),
+                        "link": f"https://dev227667.service-now.com/incident.do?sys_id={inc['sys_id']}"
                     }
                     for inc in incidents
                 ]
 
-                # Állapotopciók és incidensek összeállítása válaszként
-                response_data = {
-                    "status_options": STATUS_OPTIONS,
-                    "incidents": formatted_incidents
-                }
-
-                # Válasz JSON formátumban, ékezetek megőrzésével
-                return Response(json.dumps(response_data, ensure_ascii=False),
+                # Válasz csak az incidensekkel, statikus `status_options` nélkül
+                return Response(json.dumps({"incidents": formatted_incidents}, ensure_ascii=False),
                                 content_type="application/json; charset=utf-8")
             else:
                 return jsonify({"error": "Incidensek lekérése sikertelen"}), 400
