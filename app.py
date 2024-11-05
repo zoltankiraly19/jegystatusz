@@ -16,8 +16,10 @@ STATUS_OPTIONS = {
     "Törölve": "8"
 }
 
+# Fordított szótár az állapot nevekhez
+STATUS_LABELS = {value: key for key, value in STATUS_OPTIONS.items()}
 
-# Egyetlen végpont a bejelentkezéshez, incidens lekérdezéshez és állapotopciók visszaadásához
+
 @app.route('/get_incidents_with_status_options', methods=['POST'])
 def get_incidents_with_status_options():
     request_data = request.json
@@ -42,7 +44,6 @@ def get_incidents_with_status_options():
     if response.status_code == 200:
         access_token = response.json().get('access_token')
 
-        # Felhasználói sys_id lekérése a tokennel
         headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
         response_user = requests.get(
             f"https://dev227667.service-now.com/api/now/table/sys_user?sysparm_query=user_name={felhasználónév}",
@@ -51,7 +52,6 @@ def get_incidents_with_status_options():
         if response_user.status_code == 200:
             caller_id = response_user.json().get('result', [])[0].get("sys_id")
 
-            # Incidensek lekérése a kiválasztott állapot alapján
             query = f"caller_id={caller_id}^state={állapot}"
             response_incidents = requests.get(
                 f"https://dev227667.service-now.com/api/now/table/incident?sysparm_query={query}",
@@ -64,18 +64,18 @@ def get_incidents_with_status_options():
                     {
                         "number": inc["number"],
                         "short_description": inc["short_description"],
-                        "status": inc["state"]
+                        "status": STATUS_LABELS.get(inc["state"], inc["state"]),
+                        "link": f"https://dev227667.service-now.com/nav_to.do?uri=incident.do?sys_id={inc['sys_id']}",
+                        "link_text": "Megnyitás"
                     }
                     for inc in incidents
                 ]
 
-                # Állapotopciók és incidensek összeállítása válaszként
                 response_data = {
                     "status_options": [{"label": label, "value": value} for label, value in STATUS_OPTIONS.items()],
                     "incidents": formatted_incidents
                 }
 
-                # Válasz JSON formátumban, ékezetek megőrzésével
                 return Response(json.dumps(response_data, ensure_ascii=False),
                                 content_type="application/json; charset=utf-8")
             else:
