@@ -7,17 +7,17 @@ app = Flask(__name__)
 CORS(app)
 
 # Állapotok a legördülő menü számára a ServiceNow állapotkódok alapján
-STATUS_OPTIONS = {
-    "Nyitott": "1",
-    "Függőben": "2",
-    "Függőben Másoknál": "3",
-    "Megoldva": "6",
-    "Bezárva": "7",
-    "Törölve": "8"
-}
+STATUS_OPTIONS = [
+    {"label": "Nyitott", "value": "1"},
+    {"label": "Függőben", "value": "2"},
+    {"label": "Függőben Másoknál", "value": "3"},
+    {"label": "Megoldva", "value": "6"},
+    {"label": "Bezárva", "value": "7"},
+    {"label": "Törölve", "value": "8"}
+]
 
 # Fordított szótár az állapot nevekhez
-STATUS_LABELS = {value: key for key, value in STATUS_OPTIONS.items()}
+STATUS_LABELS = {option["value"]: option["label"] for option in STATUS_OPTIONS}
 
 
 @app.route('/get_incidents_with_status_options', methods=['POST'])
@@ -28,7 +28,7 @@ def get_incidents_with_status_options():
     állapot = request_data.get('állapot')  # Például: "1", "2", "3", "6", "7", "8"
 
     # Ellenőrizzük, hogy az állapot érvényes-e
-    if állapot not in STATUS_OPTIONS.values():
+    if állapot not in STATUS_LABELS:
         return jsonify({"error": "Érvénytelen állapot"}), 400
 
     # Token megszerzése a ServiceNow-tól
@@ -44,6 +44,7 @@ def get_incidents_with_status_options():
     if response.status_code == 200:
         access_token = response.json().get('access_token')
 
+        # Felhasználói sys_id lekérése a tokennel
         headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
         response_user = requests.get(
             f"https://dev227667.service-now.com/api/now/table/sys_user?sysparm_query=user_name={felhasználónév}",
@@ -52,6 +53,7 @@ def get_incidents_with_status_options():
         if response_user.status_code == 200:
             caller_id = response_user.json().get('result', [])[0].get("sys_id")
 
+            # Incidensek lekérése a kiválasztott állapot alapján
             query = f"caller_id={caller_id}^state={állapot}"
             response_incidents = requests.get(
                 f"https://dev227667.service-now.com/api/now/table/incident?sysparm_query={query}",
@@ -64,18 +66,18 @@ def get_incidents_with_status_options():
                     {
                         "number": inc["number"],
                         "short_description": inc["short_description"],
-                        "status": STATUS_LABELS.get(inc["state"], inc["state"]),
-                        "link": f"https://dev227667.service-now.com/nav_to.do?uri=incident.do?sys_id={inc['sys_id']}",
-                        "link_text": "Megnyitás"
+                        "status": STATUS_LABELS.get(inc["state"], inc["state"])
                     }
                     for inc in incidents
                 ]
 
+                # Állapotopciók és incidensek összeállítása válaszként
                 response_data = {
-                    "status_options": [{"label": label, "value": value} for label, value in STATUS_OPTIONS.items()],
+                    "status_options": STATUS_OPTIONS,
                     "incidents": formatted_incidents
                 }
 
+                # Válasz JSON formátumban, ékezetek megőrzésével
                 return Response(json.dumps(response_data, ensure_ascii=False),
                                 content_type="application/json; charset=utf-8")
             else:
