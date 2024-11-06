@@ -6,7 +6,7 @@ import json
 app = Flask(__name__)
 CORS(app)
 
-# Állapotok a ServiceNow állapotkódok alapján
+# Állapotkódok a felhasználói-barát állapotokhoz
 STATUS_OPTIONS = {
     "Nyitott": "1",
     "Függőben": "2",
@@ -19,16 +19,16 @@ STATUS_OPTIONS = {
 # Fordított szótár az állapot nevekhez
 STATUS_LABELS = {value: key for key, value in STATUS_OPTIONS.items()}
 
-
 @app.route('/get_incidents', methods=['POST'])
 def get_incidents():
     request_data = request.json
     felhasználónév = request_data.get('felhasználónév')
     jelszó = request_data.get('jelszó')
-    állapot = request_data.get('állapot')  # Például: "1", "2", "3", "6", "7", "8"
+    állapot_nev = request_data.get('állapot')  # Emberi olvashatóságú állapot, pl. "Nyitott"
 
-    # Ellenőrizzük, hogy az állapot érvényes-e
-    if állapot not in STATUS_LABELS:
+    # Konvertáljuk az állapotot kódra, ha szöveges formában érkezett
+    állapot = STATUS_OPTIONS.get(állapot_nev)
+    if not állapot:
         return jsonify({"error": "Érvénytelen állapot"}), 400
 
     # Token megszerzése a ServiceNow-tól
@@ -72,7 +72,7 @@ def get_incidents():
                     for inc in incidents
                 ]
 
-                # Válasz csak az incidensekkel, statikus `status_options` nélkül
+                # Válasz az incidensekkel
                 return Response(json.dumps({"incidents": formatted_incidents}, ensure_ascii=False),
                                 content_type="application/json; charset=utf-8")
             else:
@@ -81,7 +81,6 @@ def get_incidents():
             return jsonify({"error": "Felhasználói azonosító lekérése sikertelen."}), 400
     else:
         return jsonify({"error": "Authentication failed", "details": response.text}), 400
-
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
