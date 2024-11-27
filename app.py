@@ -6,7 +6,7 @@ import json
 app = Flask(__name__)
 CORS(app)
 
-# Állapotkódok a felhasználói-barát állapotokhoz
+# Állapotkódok a felhasználói-barát megjelenítés
 STATUS_OPTIONS = {
     "Nyitott": "1",
     "Függőben": "2",
@@ -16,15 +16,27 @@ STATUS_OPTIONS = {
     "Törölve": "8"
 }
 
-# Fordított szótár az állapot nevekhez
+
 STATUS_LABELS = {value: key for key, value in STATUS_OPTIONS.items()}
+
+# Formázó függvény az incidensek szöveges megjelenítéséhez
+def format_incidents(incidents):
+    formatted_text = ""
+    for inc in incidents:
+        formatted_text += (
+            f"A jegy száma: {inc['number']}\n"
+            f"Rövid hiba leírás: {inc['short_description']}\n"
+            f"Státusz: {inc['status']}\n"
+            f"Link: {inc['link']}\n\n"
+        )
+    return formatted_text
 
 @app.route('/get_incidents', methods=['POST'])
 def get_incidents():
     request_data = request.json
     felhasználónév = request_data.get('felhasználónév')
     jelszó = request_data.get('jelszó')
-    állapot_nev = request_data.get('állapot')  # Emberi olvashatóságú állapot, pl. "Nyitott"
+    állapot_nev = request_data.get('állapot')  #  pl. "Nyitott"
 
     # Konvertáljuk az állapotot kódra, ha szöveges formában érkezett
     állapot = STATUS_OPTIONS.get(állapot_nev)
@@ -73,8 +85,8 @@ def get_incidents():
                 ]
 
                 # Válasz az incidensekkel
-                return Response(json.dumps({"incidents": formatted_incidents}, ensure_ascii=False),
-                                content_type="application/json; charset=utf-8")
+                formatted_text = format_incidents(formatted_incidents)
+                return Response(formatted_text, content_type="text/plain; charset=utf-8")
             else:
                 return jsonify({"error": "Incidensek lekérése sikertelen"}), 400
         else:
