@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, Response
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import requests
 import json
@@ -16,29 +16,16 @@ STATUS_OPTIONS = {
     "Törölve": "8"
 }
 
-
 STATUS_LABELS = {value: key for key, value in STATUS_OPTIONS.items()}
-
-# Formázó függvény az incidensek szöveges megjelenítéséhez
-def format_incidents(incidents):
-    formatted_text = ""
-    for inc in incidents:
-        formatted_text += (
-            f"A jegy száma: {inc['number']}\n"
-            f"Rövid hiba leírás: {inc['short_description']}\n"
-            f"Státusz: {inc['status']}\n"
-            f"Link: {inc['link']}\n\n"
-        )
-    return formatted_text
 
 @app.route('/get_incidents', methods=['POST'])
 def get_incidents():
     request_data = request.json
     felhasználónév = request_data.get('felhasználónév')
     jelszó = request_data.get('jelszó')
-    állapot_nev = request_data.get('állapot')  #  pl. "Nyitott"
+    állapot_nev = request_data.get('állapot')  # pl. "Nyitott"
 
-    # Konvertáljuk az állapotot kódra, ha szöveges formában érkezett
+    # Állapot kódra konvertálása
     állapot = STATUS_OPTIONS.get(állapot_nev)
     if not állapot:
         return jsonify({"error": "Érvénytelen állapot"}), 400
@@ -56,12 +43,13 @@ def get_incidents():
     if response.status_code == 200:
         access_token = response.json().get('access_token')
 
-        # Felhasználói sys_id lekérése a tokennel
+        # Felhasználói sys_id lekérése
         headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
         response_user = requests.get(
             f"https://dev227667.service-now.com/api/now/table/sys_user?sysparm_query=user_name={felhasználónév}",
             headers=headers
         )
+
         if response_user.status_code == 200:
             caller_id = response_user.json().get('result', [])[0].get("sys_id")
 
@@ -84,13 +72,12 @@ def get_incidents():
                     for inc in incidents
                 ]
 
-                # Válasz az incidensekkel
-                formatted_text = format_incidents(formatted_incidents)
-                return Response(formatted_text, content_type="text/plain; charset=utf-8")
+                # JSON válasz
+                return jsonify({"incidents": formatted_incidents}), 200
             else:
                 return jsonify({"error": "Incidensek lekérése sikertelen"}), 400
         else:
-            return jsonify({"error": "Felhasználói azonosító lekérése sikertelen."}), 400
+            return jsonify({"error": "Felhasználói azonosító lekérése sikertelen"}), 400
     else:
         return jsonify({"error": "Authentication failed", "details": response.text}), 400
 
