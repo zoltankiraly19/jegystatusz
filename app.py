@@ -62,17 +62,19 @@ def get_incidents():
 
             if response_incidents.status_code == 200:
                 incidents = response_incidents.json().get('result', [])
+
+                # Incidensek szépen formázott JSON struktúrája
                 formatted_incidents = [
                     {
                         "number": inc["number"],
-                        "short_description": inc["short_description"],
                         "status": STATUS_LABELS.get(inc["state"], inc["state"]),
+                        "short_description": inc["short_description"],
                         "link": f"https://dev227667.service-now.com/incident.do?sys_id={inc['sys_id']}"
                     }
                     for inc in incidents
                 ]
 
-                # JSON válasz
+                # JSON válasz küldése
                 return jsonify({"incidents": formatted_incidents}), 200
             else:
                 return jsonify({"error": "Incidensek lekérése sikertelen"}), 400
