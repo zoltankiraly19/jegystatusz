@@ -1,7 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import requests
-import json
 
 app = Flask(__name__)
 CORS(app)
@@ -63,23 +62,28 @@ def get_incidents():
             if response_incidents.status_code == 200:
                 incidents = response_incidents.json().get('result', [])
 
-                # Incidensek szépen formázott JSON struktúrája
-                formatted_incidents = [
-                    {
-                        "number": inc["number"],
-                        "status": STATUS_LABELS.get(inc["state"], inc["state"]),
-                        "short_description": inc["short_description"],
-                        "link": f"https://dev227667.service-now.com/incident.do?sys_id={inc['sys_id']}"
-                    }
-                    for inc in incidents
-                ]
+                # Külön változókba töltjük az adatokat
+                formatted_incidents = []
 
-                # JSON válasz küldése
-                return jsonify({"incidents": formatted_incidents}), 200
+                for inc in incidents:
+                    formatted_incidents.append(
+                        f"Incidens szám: {inc['number']}\n"
+                        f"Állapot: {STATUS_LABELS.get(str(inc['state']), 'Ismeretlen állapot')}\n"
+                        f"Rövid leírás: {inc['short_description']}\n"
+                        f"Link: https://dev227667.service-now.com/incident.do?sys_id={inc['sys_id']}\n"
+                    )
+
+                # A formázott válasz elküldése a kívánt formátumban (minden egyes jegy külön blokkban)
+                incidents_response = "\n\n".join(formatted_incidents)
+
+                return jsonify({
+                    "message": "Incidensek sikeresen lekérve",
+                    "incidents": incidents_response  # Külön sorokban jelenítjük meg az incidenseket
+                }), 200
             else:
-                return jsonify({"error": "Incidensek lekérése sikertelen"}), 400
+                return jsonify({"error": "Incidensek lekérése sikertelen", "details": response_incidents.text}), 400
         else:
-            return jsonify({"error": "Felhasználói azonosító lekérése sikertelen"}), 400
+            return jsonify({"error": "Felhasználói azonosító lekérése sikertelen", "details": response_user.text}), 400
     else:
         return jsonify({"error": "Authentication failed", "details": response.text}), 400
 
