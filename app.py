@@ -67,14 +67,14 @@ def get_incidents():
 
                 for inc in incidents:
                     formatted_incidents.append(
-                        f"Incidens szám: {inc['number']}\n"
-                        f"Állapot: {STATUS_LABELS.get(str(inc['state']), 'Ismeretlen állapot')}\n"
-                        f"Rövid leírás: {inc['short_description']}\n"
-                        f"Link: https://dev227667.service-now.com/incident.do?sys_id={inc['sys_id']}\n"
+                        f"<span style='color:green; font-weight: bold;'>Incidens szám:</span> {inc['number']}<br>"
+                        f"<span style='font-weight: bold;'>Állapot:</span> {STATUS_LABELS.get(str(inc['state']), 'Ismeretlen állapot')}<br>"
+                        f"<span style='font-weight: bold;'>Rövid leírás:</span> {inc['short_description']}<br>"
+                        f"<span style='font-weight: bold;'>Link:</span> <a href='https://dev227667.service-now.com/incident.do?sys_id={inc['sys_id']}'>Link</a><br>"
                     )
 
                 # A formázott válasz elküldése a kívánt formátumban (minden egyes jegy külön blokkban)
-                incidents_response = "\n\n".join(formatted_incidents)
+                incidents_response = "<br><br>".join(formatted_incidents)
 
                 return jsonify({
                     "message": "Incidensek sikeresen lekérve",
