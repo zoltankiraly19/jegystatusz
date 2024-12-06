@@ -32,20 +32,20 @@ def get_incidents():
     # Token megszerzése a ServiceNow-tól
     auth_data = {
         'grant_type': 'password',
-        'client_id': '45f3f2fb2ead4928ab994c64c664dfdc',
+        'client_id': '89962e5f5a0c46b7974130f213b8c121',
         'client_secret': 'fyHL1.@d&7',
         'username': felhasználónév,
         'password': jelszó
     }
 
-    response = requests.post('https://dev227667.service-now.com/oauth_token.do', data=auth_data)
+    response = requests.post('https://dev182538.service-now.com/oauth_token.do', data=auth_data)
     if response.status_code == 200:
         access_token = response.json().get('access_token')
 
         # Felhasználói sys_id lekérése
         headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
         response_user = requests.get(
-            f"https://dev227667.service-now.com/api/now/table/sys_user?sysparm_query=user_name={felhasználónév}",
+            f"https://dev182538.service-now.com/api/now/table/sys_user?sysparm_query=user_name={felhasználónév}",
             headers=headers
         )
 
@@ -55,7 +55,7 @@ def get_incidents():
             # Incidensek lekérése a kiválasztott állapot alapján
             query = f"caller_id={caller_id}^state={állapot}"
             response_incidents = requests.get(
-                f"https://dev227667.service-now.com/api/now/table/incident?sysparm_query={query}",
+                f"https://dev182538.service-now.com/api/now/table/incident?sysparm_query={query}",
                 headers=headers
             )
 
@@ -70,7 +70,7 @@ def get_incidents():
                         f"<span style='color:green; font-weight: bold;'>Incidens szám:</span> {inc['number']}<br>"
                         f"<span style='font-weight: bold;'>Állapot:</span> {STATUS_LABELS.get(str(inc['state']), 'Ismeretlen állapot')}<br>"
                         f"<span style='font-weight: bold;'>Rövid leírás:</span> {inc['short_description']}<br>"
-                        f"<span style='font-weight: bold;'>Link:</span> <a href='https://dev227667.service-now.com/incident.do?sys_id={inc['sys_id']}'>Link</a><br>"
+                        f"<span style='font-weight: bold;'>Link:</span> <a href='https://dev182538.service-now.com/incident.do?sys_id={inc['sys_id']}'>Link</a><br>"
                     )
 
                 # A formázott válasz elküldése a kívánt formátumban (minden egyes jegy külön blokkban)
